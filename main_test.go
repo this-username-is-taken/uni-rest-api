@@ -49,11 +49,11 @@ func TestBadUrls(t *testing.T) {
 	testBadUrl(serverAddress, 404)
 	testBadUrl(serverAddress+"/", 404)
 	testBadUrl(serverAddress+"/2f2jo3i", 404)
-	testBadUrl(serverAddress+"/asset/", 404)
-	testBadUrl(serverAddress+"/asset/vxcv", 404)
-	testBadUrl(serverAddress+"/asset/pools", 404)
-	testBadUrl(serverAddress+"/asset/0x00/pools", 400)
-	testBadUrl(serverAddress+"/asset/sdf/pools/abc", 404)
+	testBadUrl(serverAddress+"/assets/", 404)
+	testBadUrl(serverAddress+"/assets/vxcv", 404)
+	testBadUrl(serverAddress+"/assets/pools", 404)
+	testBadUrl(serverAddress+"/assets/0x00/pools", 400)
+	testBadUrl(serverAddress+"/assets/sdf/pools/abc", 404)
 }
 
 // Note that the test result may change as user add/remove pools on Uniswap
@@ -70,7 +70,7 @@ func TestAssetPool(t *testing.T) {
 		"0xcbeb7da1ec121fc37dde2bc9010f3a4001e1ebcb": false,
 	}
 
-	endpoint := serverAddress + "/asset/" + assetId + "/pools"
+	endpoint := serverAddress + "/assets/" + assetId + "/pools"
 	resp, err := http.Get(endpoint)
 	if err != nil {
 		t.Fatal(err)
