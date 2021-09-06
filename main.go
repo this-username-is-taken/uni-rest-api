@@ -4,16 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 
 	"github.com/go-chi/chi"
 )
-
-func validAddress(addr string) bool {
-	match, _ := regexp.MatchString("^0x[a-fA-F0-9]{40}$", addr)
-	return match
-}
 
 func assetPoolsRequestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(
@@ -31,7 +25,7 @@ func assetPoolsRequestHandler(w http.ResponseWriter, r *http.Request) {
 	responseJson, err := queryAssetPools(assetId)
 
 	if err != nil {
-		log.Println("Error querying asset volume: " + err.Error())
+		log.Println("Error querying asset pools: " + err.Error())
 		http.Error(w, "Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	} else {
@@ -99,6 +93,29 @@ func assetVolumeRequestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func blockSwapsRequestHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	blockIdParam := chi.URLParam(r, "blockId")
+
+	blockId, blockIdErr := strconv.ParseUint(blockIdParam, 10, 64)
+
+	if blockIdErr != nil {
+		http.Error(w, "Invalid block id "+blockIdParam, http.StatusBadRequest)
+		return
+	}
+
+	responseJson, err := queryBlockSwaps(blockId)
+
+	if err != nil {
+		log.Println("Error querying block swaps: " + err.Error())
+		http.Error(w, "Error: "+err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		w.Write(responseJson)
+	}
 }
 
 func blockSwappedAssetsRequestHandler(w http.ResponseWriter, r *http.Request) {

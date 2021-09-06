@@ -29,7 +29,6 @@ func queryAssetPools(assetId string) ([]byte, error) {
 }
 
 func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) ([]byte, error) {
-	const resultsPerPage = 100
 	totalVolume := 0.0
 	graphqlClient := graphql.NewClient(UniswapV3Endpoint)
 
@@ -44,7 +43,7 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 		}
 
 		graphqlQuery := `{
-			tokenDayDatas(first: ` + strconv.Itoa(resultsPerPage) + `, orderBy: date, orderDirection: desc, where: {
+			tokenDayDatas(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: date, orderDirection: desc, where: {
 				token: "` + assetId + `"
 				` + startTimeQueryString + `
 				` + endTimeQueryString + `
@@ -64,13 +63,52 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 			totalVolume += tokenDayDataResult.TokenDayData[i].VolumeUSD
 		}
 
-		if len(tokenDayDataResult.TokenDayData) == resultsPerPage {
-			endTimeUnix = tokenDayDataResult.TokenDayData[resultsPerPage-1].Date
+		if len(tokenDayDataResult.TokenDayData) == GraphqlResultsPerPage {
+			endTimeUnix = tokenDayDataResult.TokenDayData[GraphqlResultsPerPage-1].Date
 		} else {
 			break
 		}
 	}
 
 	jsonResponse, jsonError := json.Marshal(map[string]float64{"TotalVolumeUSD": totalVolume})
+	return jsonResponse, jsonError
+}
+
+func queryBlockSwaps(blockId uint64) ([]byte, error) {
+	lastTxQueryString := ""
+	allSwaps := []Swap{}
+
+	for {
+
+		graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+		graphqlQuery := `{
+			transactions(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
+				blockNumber: ` + strconv.FormatUint(blockId, 10) + `
+				` + lastTxQueryString + `
+			}) {
+				id
+				swaps {
+					id
+				}
+			}
+		}`
+		graphqlRequest := graphql.NewRequest(graphqlQuery)
+		var transactionsResult TransactionsResult
+		if err := graphqlClient.Run(context.Background(), graphqlRequest, &transactionsResult); err != nil {
+			return nil, err
+		}
+		transactions := transactionsResult.Transactions
+
+		for i := 0; i < len(transactions); i++ {
+			allSwaps = append(allSwaps, transactions[i].Swaps...)
+		}
+
+		if len(transactions) == GraphqlResultsPerPage {
+			lastTxQueryString = " id_lt: \"" + transactions[len(transactions)-1].Id + "\" "
+		} else {
+			break
+		}
+	}
+	jsonResponse, jsonError := json.Marshal(allSwaps)
 	return jsonResponse, jsonError
 }
