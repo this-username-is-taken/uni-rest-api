@@ -22,8 +22,14 @@ type TokenDayDataResult struct {
 	TokenDayData []TokenDayData `json:"tokenDayDatas"`
 }
 
-type Swap struct {
+type Token struct {
 	Id string `json:"id"`
+}
+
+type Swap struct {
+	Id     string `json:"id"`
+	Token0 Token  `json:"token0"`
+	Token1 Token  `json:"token1"`
 }
 
 type Transaction struct {

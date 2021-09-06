@@ -119,6 +119,29 @@ func blockSwapsRequestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func blockSwappedAssetsRequestHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	blockIdParam := chi.URLParam(r, "blockId")
+
+	blockId, blockIdErr := strconv.ParseUint(blockIdParam, 10, 64)
+
+	if blockIdErr != nil {
+		http.Error(w, "Invalid block id "+blockIdParam, http.StatusBadRequest)
+		return
+	}
+
+	responseJson, err := queryBlockSwapsAssets(blockId)
+
+	if err != nil {
+		log.Println("Error querying block swap assets: " + err.Error())
+		http.Error(w, "Error: "+err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		w.Write(responseJson)
+	}
 }
 
 func main() {
@@ -126,7 +149,7 @@ func main() {
 	router.Get("/assets/{assetId}/pools", assetPoolsRequestHandler)
 	router.Get("/assets/{assetId}/volume", assetVolumeRequestHandler)
 	router.Get("/blocks/{blockId}/swaps", blockSwapsRequestHandler)
-	router.Get("/blocks/{blockId}/assets-swapped", blockSwappedAssetsRequestHandler)
+	router.Get("/blocks/{blockId}/swapped-assets", blockSwappedAssetsRequestHandler)
 
 	fmt.Println("Listening on port " + ServerPort + "...")
 	log.Fatal(http.ListenAndServe(":"+ServerPort, router))

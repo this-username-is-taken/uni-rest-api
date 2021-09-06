@@ -76,10 +76,9 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 
 func queryBlockSwaps(blockId uint64) ([]byte, error) {
 	lastTxQueryString := ""
-	allSwaps := []Swap{}
+	allSwaps := []string{}
 
 	for {
-
 		graphqlClient := graphql.NewClient(UniswapV3Endpoint)
 		graphqlQuery := `{
 			transactions(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
@@ -100,7 +99,10 @@ func queryBlockSwaps(blockId uint64) ([]byte, error) {
 		transactions := transactionsResult.Transactions
 
 		for i := 0; i < len(transactions); i++ {
-			allSwaps = append(allSwaps, transactions[i].Swaps...)
+			tx := transactions[i]
+			for j := 0; j < len(tx.Swaps); j++ {
+				allSwaps = append(allSwaps, tx.Swaps[j].Id)
+			}
 		}
 
 		if len(transactions) == GraphqlResultsPerPage {
@@ -110,5 +112,59 @@ func queryBlockSwaps(blockId uint64) ([]byte, error) {
 		}
 	}
 	jsonResponse, jsonError := json.Marshal(allSwaps)
+	return jsonResponse, jsonError
+}
+
+func queryBlockSwapsAssets(blockId uint64) ([]byte, error) {
+	lastTxQueryString := ""
+	allAssets := map[string]bool{}
+
+	for {
+		graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+		graphqlQuery := `{
+			transactions(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
+				blockNumber: ` + strconv.FormatUint(blockId, 10) + `
+				` + lastTxQueryString + `
+			}) {
+				id
+				swaps {
+					token0 {
+						id
+					}
+					token1 {
+						id
+					}
+				}
+			}
+		}`
+		graphqlRequest := graphql.NewRequest(graphqlQuery)
+		var transactionsResult TransactionsResult
+		if err := graphqlClient.Run(context.Background(), graphqlRequest, &transactionsResult); err != nil {
+			return nil, err
+		}
+		transactions := transactionsResult.Transactions
+
+		for i := 0; i < len(transactions); i++ {
+			tx := transactions[i]
+			for j := 0; j < len(tx.Swaps); j++ {
+				allAssets[tx.Swaps[j].Token0.Id] = true
+				allAssets[tx.Swaps[j].Token1.Id] = true
+			}
+		}
+
+		if len(transactions) == GraphqlResultsPerPage {
+			lastTxQueryString = " id_lt: \"" + transactions[len(transactions)-1].Id + "\" "
+		} else {
+			break
+		}
+	}
+
+	jsonAssets := make([]string, len(allAssets))
+	i := 0
+	for k := range allAssets {
+		jsonAssets[i] = k
+		i++
+	}
+	jsonResponse, jsonError := json.Marshal(jsonAssets)
 	return jsonResponse, jsonError
 }
