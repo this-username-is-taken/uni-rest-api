@@ -76,7 +76,7 @@ Example Response:
 
 ## Improvements
 
-Given more time, here are the things I would work on to improvement:
+Given more time, here are the things I would work on to improve:
 
 - [ ] The total volume is currently aggregated by day and may not be precise enough for many applications. This could be improved to be aggregated on a per-block basis with more complicated GraphQL queries.
 - [ ] Current tests only test a small number of scenarios and do not cover many edge cases.
