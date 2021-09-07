@@ -1,4 +1,4 @@
-package main
+package graphql
 
 import (
 	"context"
@@ -6,10 +6,12 @@ import (
 	"strconv"
 
 	"github.com/machinebox/graphql"
+	"messari.io/uni-rest-api/common"
+	"messari.io/uni-rest-api/config"
 )
 
-func queryAssetPools(assetId string) ([]byte, error) {
-	graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+func QueryAssetPools(assetId string) ([]byte, error) {
+	graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 	graphqlQuery := `{
 		poolsWithToken0: pools(where: { token0: "` + assetId + `"}) {
 			id
@@ -19,7 +21,7 @@ func queryAssetPools(assetId string) ([]byte, error) {
 		}
 	}`
 	graphqlRequest := graphql.NewRequest(graphqlQuery)
-	var allPools AllPools
+	var allPools common.AllPools
 	if err := graphqlClient.Run(context.Background(), graphqlRequest, &allPools); err != nil {
 		return nil, err
 	}
@@ -28,22 +30,22 @@ func queryAssetPools(assetId string) ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) ([]byte, error) {
+func QueryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) ([]byte, error) {
 	totalVolume := 0.0
-	graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+	graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 
 	for {
 		startTimeQueryString := ""
-		if startTimeUnix != MinUint {
+		if startTimeUnix != common.MinUint {
 			startTimeQueryString = " date_gt: " + strconv.FormatUint(startTimeUnix, 10) + " "
 		}
 		endTimeQueryString := ""
-		if endTimeUnix != MaxUint {
+		if endTimeUnix != common.MaxUint {
 			endTimeQueryString = " date_lt: " + strconv.FormatUint(endTimeUnix, 10) + " "
 		}
 
 		graphqlQuery := `{
-			tokenDayDatas(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: date, orderDirection: desc, where: {
+			tokenDayDatas(first: ` + strconv.Itoa(config.GraphqlResultsPerPage) + `, orderBy: date, orderDirection: desc, where: {
 				token: "` + assetId + `"
 				` + startTimeQueryString + `
 				` + endTimeQueryString + `
@@ -54,7 +56,7 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 		}`
 
 		graphqlRequest := graphql.NewRequest(graphqlQuery)
-		var tokenDayDataResult TokenDayDataResult
+		var tokenDayDataResult common.TokenDayDataResult
 		if err := graphqlClient.Run(context.Background(), graphqlRequest, &tokenDayDataResult); err != nil {
 			return nil, err
 		}
@@ -63,8 +65,8 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 			totalVolume += tokenDayDataResult.TokenDayData[i].VolumeUSD
 		}
 
-		if len(tokenDayDataResult.TokenDayData) == GraphqlResultsPerPage {
-			endTimeUnix = tokenDayDataResult.TokenDayData[GraphqlResultsPerPage-1].Date
+		if len(tokenDayDataResult.TokenDayData) == config.GraphqlResultsPerPage {
+			endTimeUnix = tokenDayDataResult.TokenDayData[config.GraphqlResultsPerPage-1].Date
 		} else {
 			break
 		}
@@ -74,15 +76,15 @@ func queryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) 
 	return jsonResponse, jsonError
 }
 
-func queryBlockSwaps(blockId uint64) ([]byte, error) {
+func QueryBlockSwaps(blockNumber uint64) ([]byte, error) {
 	lastTxQueryString := ""
 	allSwaps := []string{}
 
 	for {
-		graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+		graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 		graphqlQuery := `{
-			transactions(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
-				blockNumber: ` + strconv.FormatUint(blockId, 10) + `
+			transactions(first: ` + strconv.Itoa(config.GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
+				blockNumber: ` + strconv.FormatUint(blockNumber, 10) + `
 				` + lastTxQueryString + `
 			}) {
 				id
@@ -92,7 +94,7 @@ func queryBlockSwaps(blockId uint64) ([]byte, error) {
 			}
 		}`
 		graphqlRequest := graphql.NewRequest(graphqlQuery)
-		var transactionsResult TransactionsResult
+		var transactionsResult common.TransactionsResult
 		if err := graphqlClient.Run(context.Background(), graphqlRequest, &transactionsResult); err != nil {
 			return nil, err
 		}
@@ -105,7 +107,7 @@ func queryBlockSwaps(blockId uint64) ([]byte, error) {
 			}
 		}
 
-		if len(transactions) == GraphqlResultsPerPage {
+		if len(transactions) == config.GraphqlResultsPerPage {
 			lastTxQueryString = " id_lt: \"" + transactions[len(transactions)-1].Id + "\" "
 		} else {
 			break
@@ -115,15 +117,15 @@ func queryBlockSwaps(blockId uint64) ([]byte, error) {
 	return jsonResponse, jsonError
 }
 
-func queryBlockSwapsAssets(blockId uint64) ([]byte, error) {
+func QueryBlockSwapsAssets(blockNumber uint64) ([]byte, error) {
 	lastTxQueryString := ""
 	allAssets := map[string]bool{}
 
 	for {
-		graphqlClient := graphql.NewClient(UniswapV3Endpoint)
+		graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 		graphqlQuery := `{
-			transactions(first: ` + strconv.Itoa(GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
-				blockNumber: ` + strconv.FormatUint(blockId, 10) + `
+			transactions(first: ` + strconv.Itoa(config.GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
+				blockNumber: ` + strconv.FormatUint(blockNumber, 10) + `
 				` + lastTxQueryString + `
 			}) {
 				id
@@ -138,7 +140,7 @@ func queryBlockSwapsAssets(blockId uint64) ([]byte, error) {
 			}
 		}`
 		graphqlRequest := graphql.NewRequest(graphqlQuery)
-		var transactionsResult TransactionsResult
+		var transactionsResult common.TransactionsResult
 		if err := graphqlClient.Run(context.Background(), graphqlRequest, &transactionsResult); err != nil {
 			return nil, err
 		}
@@ -152,7 +154,7 @@ func queryBlockSwapsAssets(blockId uint64) ([]byte, error) {
 			}
 		}
 
-		if len(transactions) == GraphqlResultsPerPage {
+		if len(transactions) == config.GraphqlResultsPerPage {
 			lastTxQueryString = " id_lt: \"" + transactions[len(transactions)-1].Id + "\" "
 		} else {
 			break

@@ -7,6 +7,9 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"messari.io/uni-rest-api/common"
+	"messari.io/uni-rest-api/config"
+	"messari.io/uni-rest-api/graphql"
 )
 
 func assetPoolsRequestHandler(w http.ResponseWriter, r *http.Request) {
@@ -17,12 +20,12 @@ func assetPoolsRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	assetId := chi.URLParam(r, "assetId")
 
-	if !validAddress(assetId) {
+	if !common.ValidAddress(assetId) {
 		http.Error(w, "Invalid asset id", http.StatusBadRequest)
 		return
 	}
 
-	responseJson, err := queryAssetPools(assetId)
+	responseJson, err := graphql.QueryAssetPools(assetId)
 
 	if err != nil {
 		log.Println("Error querying asset pools: " + err.Error())
@@ -41,7 +44,7 @@ func assetVolumeRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	assetId := chi.URLParam(r, "assetId")
 
-	if !validAddress(assetId) {
+	if !common.ValidAddress(assetId) {
 		http.Error(w, "Invalid asset id", http.StatusBadRequest)
 		return
 	}
@@ -55,13 +58,13 @@ func assetVolumeRequestHandler(w http.ResponseWriter, r *http.Request) {
 	var errEndTime error = nil
 
 	if len(startParam) == 0 {
-		startTimeUnix = MinUint
+		startTimeUnix = common.MinUint
 	} else {
 		startTimeUnix, errStartTime = strconv.ParseUint(startParam, 10, 64)
 	}
 
 	if len(endParam) == 0 {
-		endTimeUnix = MaxUint
+		endTimeUnix = common.MaxUint
 	} else {
 		endTimeUnix, errEndTime = strconv.ParseUint(endParam, 10, 64)
 	}
@@ -81,7 +84,7 @@ func assetVolumeRequestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseJson, err := queryAssetVolume(assetId, startTimeUnix, endTimeUnix)
+	responseJson, err := graphql.QueryAssetVolume(assetId, startTimeUnix, endTimeUnix)
 
 	if err != nil {
 		log.Println("Error querying asset volume: " + err.Error())
@@ -98,16 +101,16 @@ func blockSwapsRequestHandler(w http.ResponseWriter, r *http.Request) {
 		"application/json",
 	)
 
-	blockIdParam := chi.URLParam(r, "blockId")
+	blockNumberParam := chi.URLParam(r, "blockNumber")
 
-	blockId, blockIdErr := strconv.ParseUint(blockIdParam, 10, 64)
+	blockNumber, blockNumberErr := strconv.ParseUint(blockNumberParam, 10, 64)
 
-	if blockIdErr != nil {
-		http.Error(w, "Invalid block id "+blockIdParam, http.StatusBadRequest)
+	if blockNumberErr != nil {
+		http.Error(w, "Invalid block id "+blockNumberParam, http.StatusBadRequest)
 		return
 	}
 
-	responseJson, err := queryBlockSwaps(blockId)
+	responseJson, err := graphql.QueryBlockSwaps(blockNumber)
 
 	if err != nil {
 		log.Println("Error querying block swaps: " + err.Error())
@@ -124,16 +127,16 @@ func blockSwappedAssetsRequestHandler(w http.ResponseWriter, r *http.Request) {
 		"application/json",
 	)
 
-	blockIdParam := chi.URLParam(r, "blockId")
+	blockNumberParam := chi.URLParam(r, "blockNumber")
 
-	blockId, blockIdErr := strconv.ParseUint(blockIdParam, 10, 64)
+	blockNumber, blockNumberErr := strconv.ParseUint(blockNumberParam, 10, 64)
 
-	if blockIdErr != nil {
-		http.Error(w, "Invalid block id "+blockIdParam, http.StatusBadRequest)
+	if blockNumberErr != nil {
+		http.Error(w, "Invalid block id "+blockNumberParam, http.StatusBadRequest)
 		return
 	}
 
-	responseJson, err := queryBlockSwapsAssets(blockId)
+	responseJson, err := graphql.QueryBlockSwapsAssets(blockNumber)
 
 	if err != nil {
 		log.Println("Error querying block swap assets: " + err.Error())
@@ -148,9 +151,9 @@ func main() {
 	router := chi.NewRouter()
 	router.Get("/assets/{assetId}/pools", assetPoolsRequestHandler)
 	router.Get("/assets/{assetId}/volume", assetVolumeRequestHandler)
-	router.Get("/blocks/{blockId}/swaps", blockSwapsRequestHandler)
-	router.Get("/blocks/{blockId}/swapped-assets", blockSwappedAssetsRequestHandler)
+	router.Get("/blocks/{blockNumber}/swaps", blockSwapsRequestHandler)
+	router.Get("/blocks/{blockNumber}/swapped-assets", blockSwappedAssetsRequestHandler)
 
-	fmt.Println("Listening on port " + ServerPort + "...")
-	log.Fatal(http.ListenAndServe(":"+ServerPort, router))
+	fmt.Println("Listening on port " + config.ServerPort + "...")
+	log.Fatal(http.ListenAndServe(":"+config.ServerPort, router))
 }

@@ -1,4 +1,4 @@
-package main
+package common
 
 const MinUint uint64 = 0
 const MaxUint uint64 = ^uint64(0)

@@ -20,5 +20,4 @@
 
 ## TODO
 
-- [ ] More detailed error handling
 
