@@ -10,8 +10,9 @@ import (
 	"messari.io/uni-rest-api/config"
 )
 
+var graphqlClient = graphql.NewClient(config.UniswapV3Endpoint)
+
 func QueryAssetPools(assetId string) ([]byte, error) {
-	graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 	graphqlQuery := `{
 		poolsWithToken0: pools(where: { token0: "` + assetId + `"}) {
 			id
@@ -32,7 +33,6 @@ func QueryAssetPools(assetId string) ([]byte, error) {
 
 func QueryAssetVolume(assetId string, startTimeUnix uint64, endTimeUnix uint64) ([]byte, error) {
 	totalVolume := 0.0
-	graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 
 	for {
 		startTimeQueryString := ""
@@ -81,7 +81,6 @@ func QueryBlockSwaps(blockNumber uint64) ([]byte, error) {
 	allSwaps := []string{}
 
 	for {
-		graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 		graphqlQuery := `{
 			transactions(first: ` + strconv.Itoa(config.GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
 				blockNumber: ` + strconv.FormatUint(blockNumber, 10) + `
@@ -122,7 +121,6 @@ func QueryBlockSwapsAssets(blockNumber uint64) ([]byte, error) {
 	allAssets := map[string]bool{}
 
 	for {
-		graphqlClient := graphql.NewClient(config.UniswapV3Endpoint)
 		graphqlQuery := `{
 			transactions(first: ` + strconv.Itoa(config.GraphqlResultsPerPage) + `, orderBy: id, orderDirection: desc, where: {
 				blockNumber: ` + strconv.FormatUint(blockNumber, 10) + `
